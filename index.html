@@ -1,43 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>HTML Uploader</title>
+  <meta charset="UTF-8" />
+  <title>Upload HTML (RAM hosted)</title>
   <style>
     body { font-family: sans-serif; padding: 2rem; }
-    input, button { margin: 1rem 0; }
+    input, button { margin-top: 1rem; }
     #link { margin-top: 1rem; }
   </style>
 </head>
 <body>
-  <h1>Upload HTML File</h1>
+  <h1>Upload HTML (RAM hosted)</h1>
   <input type="file" id="file" accept=".html" />
+  <br />
   <button onclick="upload()">Upload</button>
   <div id="link"></div>
 
   <script>
     async function upload() {
-      const file = document.getElementById('file').files[0];
+      const file = document.getElementById("file").files[0];
       if (!file || !file.name.endsWith(".html")) {
-        alert("Please upload an .html file.");
+        alert("Please upload an .html file");
         return;
       }
 
-      const formData = new FormData();
-      formData.append("file", file);
+      const text = await file.text();
 
       const res = await fetch("/api/upload", {
         method: "POST",
-        body: formData
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: text }),
       });
 
       const data = await res.json();
+
       if (res.ok) {
+        const url = `${window.location.origin}/site/${data.slug}`;
         document.getElementById("link").innerHTML = `
-          ✅ File uploaded!<br>
-          🔗 <a href="${data.url}" target="_blank">${data.url}</a>`;
+          ✅ Uploaded!<br/>
+          🔗 <a href="${url}" target="_blank">${url}</a>
+        `;
       } else {
-        document.getElementById("link").textContent = data.error;
+        document.getElementById("link").textContent = data.error || "Upload failed";
       }
     }
   </script>
