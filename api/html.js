@@ -1,3 +1,5 @@
+import fetch from 'node-fetch';
+
 let ramStorage = {}; // slug → accumulated HTML content
 
 // Wipe RAM every 1 hour
@@ -17,22 +19,31 @@ function generateSlug(length = 6) {
 
 export default async function handler(req, res) {
   if (req.method === "POST") {
-    const { slug: incomingSlug, content, chunkIndex, totalChunks } = await jsonBody(req);
+    const { slug: incomingSlug, content, chunkIndex, totalChunks, fromUrl } = await jsonBody(req);
+    if (fromUrl) {
+      try {
+        const html = await (await fetch(fromUrl)).text();
+        const slug = generateSlug();
+        ramStorage[slug] = html;
+        const url = `/api/html?slug=${slug}`;
+        return res.status(200).json({ slug, url });
+      } catch (e) {
+        return res.status(500).json({ error: "Failed to fetch from URL" });
+      }
+    }
+
     if (typeof content !== "string") {
       return res.status(400).json({ error: "Invalid content" });
     }
 
     let slug = incomingSlug;
-    // First chunk: generate slug and init storage
     if (!slug) {
       slug = generateSlug();
       ramStorage[slug] = "";
     }
 
-    // Append this chunk
     ramStorage[slug] += content;
 
-    // If this was the last chunk, return the URL
     if (
       typeof chunkIndex === "number" &&
       typeof totalChunks === "number" &&
@@ -42,7 +53,6 @@ export default async function handler(req, res) {
       return res.status(200).json({ slug, url });
     }
 
-    // Otherwise acknowledge and return slug
     res.status(200).json({ slug });
   } else if (req.method === "GET") {
     const slug = req.query.slug;
