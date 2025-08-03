@@ -2,15 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Chunked HTML Upload (RAM hosted)</title>
+  <title>Upload HTML in Chunks</title>
   <style>
-    body { font-family: sans-serif; padding: 2rem; }
+    body { font-family: sans-serif; padding: 2rem; max-width: 600px; margin: auto; }
     input, button { margin-top: 1rem; }
     #link { margin-top: 1rem; }
   </style>
 </head>
 <body>
-  <h1>Upload HTML in 1 MB Chunks</h1>
+  <h1>Upload HTML File (1MB Chunks)</h1>
   <input type="file" id="file" accept=".html" />
   <br />
   <button onclick="upload()">Upload</button>
@@ -18,10 +18,10 @@
 
   <script>
     async function upload() {
-      const input = document.getElementById('file');
+      const input = document.getElementById("file");
       const file = input.files[0];
-      if (!file || !file.name.endsWith('.html')) {
-        alert('Please select an .html file');
+      if (!file || !file.name.endsWith(".html")) {
+        alert("Please select a .html file.");
         return;
       }
 
@@ -38,21 +38,23 @@
         const payload = { content, chunkIndex: i, totalChunks };
         if (slug) payload.slug = slug;
 
-        const res = await fetch('/api/html', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
+        const res = await fetch("/api/html", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
         });
+
         const data = await res.json();
         if (!res.ok) {
-          document.getElementById('link').textContent = data.error || 'Upload failed';
+          document.getElementById("link").textContent = data.error || "Upload failed";
           return;
         }
+
         slug = data.slug;
       }
 
       const url = `${window.location.origin}/api/html?slug=${slug}`;
-      document.getElementById('link').innerHTML = `✅ Uploaded!<br>🔗 <a href="${url}" target="_blank">${url}</a>`;
+      document.getElementById("link").innerHTML = `✅ Uploaded!<br>🔗 <a href="${url}" target="_blank">${url}</a>`;
     }
   </script>
 </body>
