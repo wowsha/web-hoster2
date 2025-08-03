@@ -26,7 +26,7 @@
 
       const text = await file.text();
 
-      const res = await fetch("/api/upload", {
+      const res = await fetch("/api/html", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: text }),
@@ -35,7 +35,7 @@
       const data = await res.json();
 
       if (res.ok) {
-        const url = `${window.location.origin}/site/${data.slug}`;
+        const url = `${window.location.origin}${data.url}`;
         document.getElementById("link").innerHTML = `
           ✅ Uploaded!<br/>
           🔗 <a href="${url}" target="_blank">${url}</a>
