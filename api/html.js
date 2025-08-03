@@ -17,41 +17,22 @@ function generateSlug(length = 6) {
 
 export default async function handler(req, res) {
   if (req.method === "POST") {
-    const { slug: incomingSlug, content, chunkIndex, totalChunks, fromUrl } = await jsonBody(req);
-
-    if (fromUrl) {
-      try {
-        const parsedUrl = new URL(fromUrl);
-        if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
-          return res.status(400).json({ error: "Only HTTP or HTTPS URLs are allowed" });
-        }
-        const response = await fetch(fromUrl);
-        if (!response.ok) {
-          return res.status(400).json({ error: `Failed to fetch URL: ${response.status} ${response.statusText}` });
-        }
-        const html = await response.text();
-        const slug = generateSlug();
-        ramStorage[slug] = html;
-        const url = `/api/html?slug=${slug}`;
-        return res.status(200).json({ slug, url });
-      } catch (e) {
-        console.error("Fetch from URL error:", e);
-        return res.status(500).json({ error: "Failed to fetch from URL" });
-      }
-    }
-
+    const { slug: incomingSlug, content, chunkIndex, totalChunks } = await jsonBody(req);
     if (typeof content !== "string") {
       return res.status(400).json({ error: "Invalid content" });
     }
 
     let slug = incomingSlug;
+    // First chunk: generate slug and init storage
     if (!slug) {
       slug = generateSlug();
       ramStorage[slug] = "";
     }
 
+    // Append this chunk
     ramStorage[slug] += content;
 
+    // If this was the last chunk, return the URL
     if (
       typeof chunkIndex === "number" &&
       typeof totalChunks === "number" &&
@@ -61,6 +42,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ slug, url });
     }
 
+    // Otherwise acknowledge and return slug
     res.status(200).json({ slug });
   } else if (req.method === "GET") {
     const slug = req.query.slug;
@@ -78,7 +60,7 @@ export default async function handler(req, res) {
 function jsonBody(req) {
   return new Promise((resolve, reject) => {
     let body = "";
-    req.on("data", (chunk) => (body += chunk));
+    req.on("data", chunk => (body += chunk));
     req.on("end", () => {
       try {
         resolve(JSON.parse(body));
