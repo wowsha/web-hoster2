@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Upload HTML (RAM hosted)</title>
+  <title>Chunked HTML Upload (RAM hosted)</title>
   <style>
     body { font-family: sans-serif; padding: 2rem; }
     input, button { margin-top: 1rem; }
@@ -10,7 +10,7 @@
   </style>
 </head>
 <body>
-  <h1>Upload HTML (RAM hosted)</h1>
+  <h1>Upload HTML in 1 MB Chunks</h1>
   <input type="file" id="file" accept=".html" />
   <br />
   <button onclick="upload()">Upload</button>
@@ -18,31 +18,41 @@
 
   <script>
     async function upload() {
-      const file = document.getElementById("file").files[0];
-      if (!file || !file.name.endsWith(".html")) {
-        alert("Please upload an .html file");
+      const input = document.getElementById('file');
+      const file = input.files[0];
+      if (!file || !file.name.endsWith('.html')) {
+        alert('Please select an .html file');
         return;
       }
 
-      const text = await file.text();
+      const chunkSize = 1 * 1024 * 1024; // 1 MB
+      const totalChunks = Math.ceil(file.size / chunkSize);
+      let slug = null;
 
-      const res = await fetch("/api/html", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: text }),
-      });
+      for (let i = 0; i < totalChunks; i++) {
+        const start = i * chunkSize;
+        const end = Math.min(start + chunkSize, file.size);
+        const blob = file.slice(start, end);
+        const content = await blob.text();
 
-      const data = await res.json();
+        const payload = { content, chunkIndex: i, totalChunks };
+        if (slug) payload.slug = slug;
 
-      if (res.ok) {
-        const url = `${window.location.origin}${data.url}`;
-        document.getElementById("link").innerHTML = `
-          ✅ Uploaded!<br/>
-          🔗 <a href="${url}" target="_blank">${url}</a>
-        `;
-      } else {
-        document.getElementById("link").textContent = data.error || "Upload failed";
+        const res = await fetch('/api/html', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          document.getElementById('link').textContent = data.error || 'Upload failed';
+          return;
+        }
+        slug = data.slug;
       }
+
+      const url = `${window.location.origin}/api/html?slug=${slug}`;
+      document.getElementById('link').innerHTML = `✅ Uploaded!<br>🔗 <a href="${url}" target="_blank">${url}</a>`;
     }
   </script>
 </body>
