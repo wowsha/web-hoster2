@@ -1,6 +1,0 @@
-{
-  "routes": [
-    { "src": "/api/(.*)", "dest": "/api/$1.js" },
-    { "src": "/uploads/(.*)", "dest": "/public/uploads/$1" }
-  ]
-}
